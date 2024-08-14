@@ -2,6 +2,7 @@
 
 
 import logging, os
+from ...main import USER_STRING
 from pyrogram import filters
 from datetime import datetime
 from asyncio import sleep, get_event_loop
@@ -15,6 +16,60 @@ from .utility.helper import isLink, setThumbnail, message_deleter, send_settings
 
 src_request_msg = None
 
+@colab_bot.on_message(filters.create(isLink) & ~filters.photo)
+async def handle_url(client, message):
+    global BOT
+
+    # Reset
+    BOT.Options.custom_name = ""
+    BOT.Options.zip_pswd = ""
+    BOT.Options.unzip_pswd = ""
+
+    if src_request_msg:
+        await src_request_msg.delete()
+    if BOT.State.task_going == False and BOT.State.started:
+        temp_source = message.text.splitlines()
+
+        # Check for arguments in message
+        for _ in range(3):
+            if temp_source[-1][0] == "[":
+                BOT.Options.custom_name = temp_source[-1][1:-1]
+                temp_source.pop()
+            elif temp_source[-1][0] == "{":
+                BOT.Options.zip_pswd = temp_source[-1][1:-1]
+                temp_source.pop()
+            elif temp_source[-1][0] == "(":
+                BOT.Options.unzip_pswd = temp_source[-1][1:-1]
+                temp_source.pop()
+            else:
+                break
+
+        BOT.SOURCE = temp_source
+        
+        # Add this part for USER_STRING
+        if USER_STRING:
+            BOT.Options.custom_name = f"{USER_STRING} {BOT.Options.custom_name}" if BOT.Options.custom_name else USER_STRING
+
+        keyboard = InlineKeyboardMarkup(
+            [
+                [InlineKeyboardButton("Regular", callback_data="normal")],
+                [
+                    InlineKeyboardButton("Compress", callback_data="zip"),
+                    InlineKeyboardButton("Extract", callback_data="unzip"),
+                ],
+                [InlineKeyboardButton("UnDoubleZip", callback_data="undzip")],
+            ]
+        )
+        await message.reply_text(
+            text=f"<b>🐹 Select Type of {BOT.Mode.mode.capitalize()} You Want » </b>\n\nRegular:<i> Normal file upload</i>\nCompress:<i> Zip file upload</i>\nExtract:<i> extract before upload</i>\nUnDoubleZip:<i> Unzip then compress</i>",
+            reply_markup=keyboard,
+            quote=True,
+        )
+    elif BOT.State.started:
+        await message.delete()
+        await message.reply_text(
+            "<i>I am Already Working ! Please Wait Until I finish 😣!!</i>"
+        )
 
 @colab_bot.on_message(filters.command("start") & filters.private)
 async def start(client, message):
