@@ -2,7 +2,6 @@
 
 
 import logging, os
-from ...main import USER_STRING
 from pyrogram import filters
 from datetime import datetime
 from asyncio import sleep, get_event_loop
