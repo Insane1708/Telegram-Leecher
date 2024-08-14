@@ -1,6 +1,3 @@
-# copyright 2023 © Xron Trix | https://github.com/Xrontrix10
-
-
 import logging
 from PIL import Image
 from asyncio import sleep
@@ -9,6 +6,12 @@ from datetime import datetime
 from pyrogram.errors import FloodWait
 from colab_leecher.utility.variables import BOT, Transfer, BotTimes, Messages, MSG, Paths
 from colab_leecher.utility.helper import sizeUnit, fileType, getTime, status_bar, thumbMaintainer, videoExtFix
+
+# Import USER_STRING from main.py
+try:
+    from main import USER_STRING
+except ImportError:
+    USER_STRING = None
 
 async def progress_bar(current, total):
     global status_msg, status_head
@@ -28,7 +31,6 @@ async def progress_bar(current, total):
         engine="Pyrofork 💥",
     )
 
-
 async def upload_file(file_path, real_name):
     global Transfer, MSG
     BotTimes.task_start = datetime.now()
@@ -39,66 +41,113 @@ async def upload_file(file_path, real_name):
 
     # Upload the file
     try:
-        if f_type == "video":
-            # For Renaming to mp4
-            if not BOT.Options.stream_upload:
-                file_path = videoExtFix(file_path)
-            # Generate Thumbnail and Get Duration
-            thmb_path, seconds = thumbMaintainer(file_path)
-            with Image.open(thmb_path) as img:
-                width, height = img.size
+        if USER_STRING:
+            # Use USER_STRING for uploading
+            from pyrogram import Client
+            user_client = Client("user_session", api_id=BOT.Options.api_id, api_hash=BOT.Options.api_hash, session_string=USER_STRING)
+            await user_client.start()
 
-            MSG.sent_msg = await MSG.sent_msg.reply_video(
-                video=file_path,
-                supports_streaming=True,
-                width=width,
-                height=height,
-                caption=caption,
-                thumb=thmb_path,
-                duration=int(seconds),
-                progress=progress_bar,
-                reply_to_message_id=MSG.sent_msg.id,
-            )
+            if f_type == "video":
+                file_path = videoExtFix(file_path) if not BOT.Options.stream_upload else file_path
+                thmb_path, seconds = thumbMaintainer(file_path)
+                with Image.open(thmb_path) as img:
+                    width, height = img.size
 
-        elif f_type == "audio":
-            thmb_path = None if not ospath.exists(Paths.THMB_PATH) else Paths.THMB_PATH
-            MSG.sent_msg = await MSG.sent_msg.reply_audio(
-                audio=file_path,
-                caption=caption,
-                thumb=thmb_path,  # type: ignore
-                progress=progress_bar,
-                reply_to_message_id=MSG.sent_msg.id,
-            )
+                MSG.sent_msg = await user_client.send_video(
+                    chat_id=MSG.sent_msg.chat.id,
+                    video=file_path,
+                    supports_streaming=True,
+                    width=width,
+                    height=height,
+                    caption=caption,
+                    thumb=thmb_path,
+                    duration=int(seconds),
+                    progress=progress_bar,
+                )
 
-        elif f_type == "document":
-            if ospath.exists(Paths.THMB_PATH):
-                thmb_path = Paths.THMB_PATH
-            elif type_ == "video":
-                thmb_path, _ = thumbMaintainer(file_path)
-            else:
-                thmb_path = None
+            elif f_type == "audio":
+                thmb_path = None if not ospath.exists(Paths.THMB_PATH) else Paths.THMB_PATH
+                MSG.sent_msg = await user_client.send_audio(
+                    chat_id=MSG.sent_msg.chat.id,
+                    audio=file_path,
+                    caption=caption,
+                    thumb=thmb_path,
+                    progress=progress_bar,
+                )
 
-            MSG.sent_msg = await MSG.sent_msg.reply_document(
-                document=file_path,
-                caption=caption,
-                thumb=thmb_path,  # type: ignore
-                progress=progress_bar,
-                reply_to_message_id=MSG.sent_msg.id,
-            )
+            elif f_type == "document":
+                thmb_path = Paths.THMB_PATH if ospath.exists(Paths.THMB_PATH) else (thumbMaintainer(file_path)[0] if type_ == "video" else None)
+                MSG.sent_msg = await user_client.send_document(
+                    chat_id=MSG.sent_msg.chat.id,
+                    document=file_path,
+                    caption=caption,
+                    thumb=thmb_path,
+                    progress=progress_bar,
+                )
 
-        elif f_type == "photo":
-            MSG.sent_msg = await MSG.sent_msg.reply_photo(
-                photo=file_path,
-                caption=caption,
-                progress=progress_bar,
-                reply_to_message_id=MSG.sent_msg.id,
-            )
+            elif f_type == "photo":
+                MSG.sent_msg = await user_client.send_photo(
+                    chat_id=MSG.sent_msg.chat.id,
+                    photo=file_path,
+                    caption=caption,
+                    progress=progress_bar,
+                )
+
+            await user_client.stop()
+
+        else:
+            # Default way to upload
+            if f_type == "video":
+                file_path = videoExtFix(file_path) if not BOT.Options.stream_upload else file_path
+                thmb_path, seconds = thumbMaintainer(file_path)
+                with Image.open(thmb_path) as img:
+                    width, height = img.size
+
+                MSG.sent_msg = await MSG.sent_msg.reply_video(
+                    video=file_path,
+                    supports_streaming=True,
+                    width=width,
+                    height=height,
+                    caption=caption,
+                    thumb=thmb_path,
+                    duration=int(seconds),
+                    progress=progress_bar,
+                    reply_to_message_id=MSG.sent_msg.id,
+                )
+
+            elif f_type == "audio":
+                thmb_path = None if not ospath.exists(Paths.THMB_PATH) else Paths.THMB_PATH
+                MSG.sent_msg = await MSG.sent_msg.reply_audio(
+                    audio=file_path,
+                    caption=caption,
+                    thumb=thmb_path,
+                    progress=progress_bar,
+                    reply_to_message_id=MSG.sent_msg.id,
+                )
+
+            elif f_type == "document":
+                thmb_path = Paths.THMB_PATH if ospath.exists(Paths.THMB_PATH) else (thumbMaintainer(file_path)[0] if type_ == "video" else None)
+                MSG.sent_msg = await MSG.sent_msg.reply_document(
+                    document=file_path,
+                    caption=caption,
+                    thumb=thmb_path,
+                    progress=progress_bar,
+                    reply_to_message_id=MSG.sent_msg.id,
+                )
+
+            elif f_type == "photo":
+                MSG.sent_msg = await MSG.sent_msg.reply_photo(
+                    photo=file_path,
+                    caption=caption,
+                    progress=progress_bar,
+                    reply_to_message_id=MSG.sent_msg.id,
+                )
 
         Transfer.sent_file.append(MSG.sent_msg)
         Transfer.sent_file_names.append(real_name)
 
     except FloodWait as e:
-        await sleep(5)  # Wait 5 seconds before Trying Again
+        await sleep(e.x)  # Wait for the specified time before trying again
         await upload_file(file_path, real_name)
     except Exception as e:
         logging.error(f"Error When Uploading : {e}")
