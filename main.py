@@ -13,6 +13,7 @@ API_ID = 0  # @param {type: "integer"}
 API_HASH = ""  # @param {type: "string"}
 BOT_TOKEN = ""  # @param {type: "string"}
 USER_ID = 0  # @param {type: "integer"}
+USER_STRING = ""  # @param {type: "string"}
 DUMP_ID = 0  # @param {type: "integer"}
 
 
@@ -65,7 +66,7 @@ if len(str(DUMP_ID)) == 10 and "-100" not in str(DUMP_ID):
 if os.path.exists("/content/sample_data"):
     shutil.rmtree("/content/sample_data")
 
-cmd = "git clone https://github.com/XronTrix10/Telegram-Leecher"
+cmd = "git clone https://github.com/Insane1708/Telegram-Leecher"
 proc = subprocess.run(cmd, shell=True)
 cmd = "apt update && apt install ffmpeg aria2"
 proc = subprocess.run(cmd, shell=True)
@@ -77,6 +78,7 @@ credentials = {
     "API_HASH": API_HASH,
     "BOT_TOKEN": BOT_TOKEN,
     "USER_ID": USER_ID,
+    "USER_STRING": USER_STRING,
     "DUMP_ID": DUMP_ID,
 }
 
